@@ -1,0 +1,382 @@
+
+P3 WhiteBalancer Architecture Description
+=========================================
+
+
+### Harrison Ainsworth ###
+
+<http://www.hxa7241.org/whitebalancer/>  
+hxa7241 *at* gmail *dot* com
+
+2007-11-11
+
+Copyright (c) 2007, Harrison Ainsworth / HXA7241.
+
+
+
+
+Contents
+--------
+
+* Proposition
+* Requirements
+* Analysis
+* Design
+* Deployment
+* Implementation
+* Test
+* Plan
+* References
+* Time
+
+
+
+
+Proposition
+-----------
+
+Develop a good image white-balancer component, by implementing part of the
+following technical paper:
+
+>  'Color Transfer Between Images'
+>  Reinhard, Ashikhmin, Gooch, Shirley;
+>  IEEE Computer Graphics And Applications, 2001-10.
+>
+>  <http://www.cs.ucf.edu/~reinhard/papers/colourtransfer.pdf>
+
+(The technique transforms to an opponent colorspace, then translates (in 2D) an
+'illuminant point' to zero. So it is different to the common Von Kries method.)
+
+White balancing aims to make the colors in an image look the same as they did in
+the scene where the image was created. It simulates the perceptual capability of
+'color-constancy'.
+
+In rendered images it is less of a problem than in photographs -- because the
+final appearance can usually be adjusted by controlling the scene itself. But
+for physically-oriented realistic renders such control is reduced or
+inappropriate.
+
+White-balancing could be a good extra feature/refinement for rendering. It is
+not commonly addressed. So a good component would fit a niche. It can be
+well-separated and reusable, as well as integrated into P3Tonemapper.
+
+It is small and simple, so do-able in a few weeks.
+
+Aims:
+
+* well-separated and reusable
+* input and output common/usual/standard images
+* C++ code
+* Windows library and executable
+* Linux library and executable
+* Integration into P3Tonemapper
+
+
+
+
+Requirements
+------------
+
+Requirements are simple: there is only one use case, and a few supplementary
+features. The use case follows basic command-line tool form: read a file,
+process it, output a file. But this is augmented with an options file containing
+switches and metadata.
+
+
+### Use Case ###
+
+(actor - user, tonemapper, or renderer)
+1. issue command
+2. input RGB image
+3. (maybe read output error file, then repeat from first step)
+4. receive RGB image
+
+
+### Use Case Features ###
+
+* input colorspace
+* input illuminant color
+* input other options
+* input image: PPM, PNG, RGBE, OpenEXR
+* output image: same as input
+
+
+
+
+Analysis
+--------
+
+The primary division separates the user-interface application from the library.
+In the library the white-balancing algorithm is separated from more general
+graphics and image parts. In the application the image file formatting is
+separated.
+
+
+### Packages ###
+
+* whitebalance  
+  -- algorithm specific classes
+* image  
+  -- image and file formatting functions
+
+reuse (and extend a little):
+* hxa7241_graphics  
+  -- general graphics code (vector, matrix, color)
+* hxa7241_general  
+  -- very general cross-project code
+
+
+### Package Dependencies ###
+
+* library
+   * whitebalance
+   * image
+      * ImageWrapper
+* application
+   * whitebalance
+   * image
+      * ImageAdopter
+      * ImageFormatter
+      * ImageQuantizing
+      * png
+      * ppm
+* all
+   * general
+   * graphics
+      * general
+
+#### reused ####
+* general
+   * Primitives
+   * DynamicLibraryInterface
+   * LogFast (added)
+   * PowFast (added)
+* graphics
+   * ColorConstants
+   * ColorConversion
+   * Matrix3f
+   * Vector3f
+* P3Tonemapper
+   * format
+   * image
+
+
+
+
+Design
+------
+
+Colorspace transform and illuminant estimation are the two fundamental concepts.
+The important colorspace transforms are fixed, mainly as matrixes. The
+illuminant estimation is essentially a fold operation on the image. The data
+from those is used in a simple map operation to make the output image.
+
+
+### Components/Libraries Reused ###
+
+image file format support:
+* ppm
+* libpng
+* Radiance RGBE
+* OpenEXR
+
+
+### Class/Module Interfaces ###
+
+* WhiteBalancer
+   * map from image and options to image
+
+* Ruderman
+   * construct with rgb <-> xyz transforms
+   * convert rgb color to Ruderman space
+   * convert Ruderman space color to rgb
+
+* PixelMap
+   * construct with rgb <-> xyz transforms and map options
+   * map pixel to white-balanced form
+
+* ColorConversion
+   * make conversion matrixs from colorspace primaries
+
+* ImageWrapper
+   * construct as storage reference
+   * pixel indexing access
+
+* ImageAdopter
+   * construct as storage adoption (float or half)
+   * readable associated quantities (primaries, gamma, etc.)
+
+* ImageFormatter
+   * construct with external lib 'addresses'
+   * read a filename into an image
+   * write an image to a filename
+
+* ImageQuantizing
+   * make float image from int image and gamma and quantization
+   * make int image from float image and gamma and quantization
+
+
+### Sequences ###
+
+1. read commands
+2. read original image file
+3. read options
+4. call whiteBalance function
+   1. prepare
+      1. wrap images
+      2. make rgb-xyz transforms
+      3. estimate illuminant
+         1. do input image fold operation
+   2. convert
+      1. make map operator
+      2. do in-out image map operation
+5. write result image file
+
+
+
+
+Deployment
+----------
+
+A command-line program. This can be a thin wrapper to control a
+dynamic-link/shared library. The wrapper does image formatting mainly.
+
+* command-line program
+   * in:  commands, RGB image in standard format
+   * out: RGB image in same format as input
+* dynamic-link library
+   * used by command-line program, and usable by any other program
+   * images are float arrays (unformatted)
+
+
+
+
+Implementation
+--------------
+
+Just straightforward, portable C++.
+
+* C++, with exceptions, minimal template use, no RTTI
+* MS VisualC++ and GNU GCC compilers
+* almost nothing platform specific (some dynamic linking may be)
+
+
+
+
+Test
+----
+
+Not decided yet...
+Something precise and numerical is desirable.
+
+
+
+
+Plan
+----
+
+### estimate ###
+
+* total size: 500 lines (discluding reuse)
+* rate: 3 minutes per line
+* time: 25 hours ~ 7 days ~ 1.5 weeks
+
+
+### elaboration order ###
+
+1. color conversion
+2. image types
+3. whitebalance
+4. formatting
+
+
+### construction order ###
+
+1.  basic skeleton app
+2.  color conversion
+3.  image types
+4.  WhiteBalance
+5.  formatters
+6.  user application
+
+
+### next version prospectus ###
+
+* integration into P3Tonemapper
+* add half pixel type handling
+* improve illuminant estimation
+   * gray-world
+   * white-patch
+   * gamut-mapping
+   * neural-net
+   * ... http://www.google.com/search?client=opera&rls=en&q=%22illuminant+estimation%22+gray-world&sourceid=opera&ie=utf-8&oe=utf-8
+   * 'Color By Correlation' Finlayson, Hordley, Hubel; IEEE Trans. PAMI
+      vol.23 no.11, 2001-11.
+* preserve maximum white
+* speed up
+
+
+
+
+References
+----------
+
+* 'Color Transfer Between Images'  
+  Reinhard, Ashikhmin, Gooch, Shirley;  
+  IEEE Computer Graphics And Applications, 2001-10.  
+  <http://www.cs.ucf.edu/~reinhard/papers/colourtransfer.pdf>
+
+* sRGB color space  
+  <http://www.w3.org/Graphics/Color/sRGB>
+
+* PPM image format  
+  <http://netpbm.sourceforge.net/doc/ppm.html>
+
+* PNG image format  
+  <http://www.libpng.org/>
+
+* Radiance PIC/RGBE image format  
+  <http://radsite.lbl.gov/radiance/refer/filefmts.pdf>
+
+* OpenEXR image format  
+  <http://www.openexr.com/>
+
+* P3Tonemapper  
+  Harrison Ainsworth / HXA7241;  
+  2007.  
+  <http://www.hxa7241.org/tonemapper/>
+
+
+
+
+Time
+----
+
+### inception ###
+
+1 hours
+
+
+### elaboration ###
+
+1.5 hours
+3.0 hours
+1.5 hours
+3.0 hours
+0.4 hours
+3.0 hours
+
+
+### updating ###
+
+0.3 hours
+0.1 hours
+2.0 hours
+2.0 hours
+0.5 hours
+0.3 hours
+0.2 hours
+0.2 hours
+
+
+total: 17 hours

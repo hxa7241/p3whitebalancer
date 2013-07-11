@@ -1,0 +1,59 @@
+#!/bin/bash
+
+
+# --- using: GCC 3.3.5 ---
+
+
+# set constants ----------------------------------------------------------------
+COMPILER=g++
+LINKER=g++
+COMPILE_OPTIONS="-c -fPIC -x c++ -ansi -std=c++98 -pedantic -fno-gnu-keywords -fno-enforce-eh-specs -fno-rtti -O3 -ffast-math -mcpu=pentium4 -mfpmath=sse -msse -Wall -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wcast-align -Wwrite-strings -D _PLATFORM_LINUX -Ilibrary/src -Ilibrary/src/general -Ilibrary/src/graphics -Ilibrary/src/image -Ilibrary/src/whitebalance"
+LINK_OPTIONS="-shared -Wl,-soname,libp3whitebalancer.so.1 -o libp3whitebalancer.so.1.2"
+
+
+mkdir library/obj
+rm library/obj/*
+
+
+# complile ---------------------------------------------------------------------
+echo
+$COMPILER --version
+echo "--- compile ---"
+
+$COMPILER $COMPILE_OPTIONS library/src/general/LogFast.cpp -o library/obj/LogFast.o
+$COMPILER $COMPILE_OPTIONS library/src/general/PowFast.cpp -o library/obj/PowFast.o
+
+$COMPILER $COMPILE_OPTIONS library/src/graphics/ColorConstants.cpp -o library/obj/ColorConstants.o
+$COMPILER $COMPILE_OPTIONS library/src/graphics/ColorConversion.cpp -o library/obj/ColorConversion.o
+$COMPILER $COMPILE_OPTIONS library/src/graphics/Matrix3f.cpp -o library/obj/Matrix3f.o
+$COMPILER $COMPILE_OPTIONS library/src/graphics/Vector3f.cpp -o library/obj/Vector3f.o
+
+$COMPILER $COMPILE_OPTIONS library/src/image/ImageWrapper.cpp -o library/obj/ImageWrapper.o
+$COMPILER $COMPILE_OPTIONS library/src/image/ImageWrapperConst.cpp -o library/obj/ImageWrapperConst.o
+
+$COMPILER $COMPILE_OPTIONS library/src/whitebalance/WhiteBalancer.cpp -o library/obj/WhiteBalancer.o
+
+$COMPILER $COMPILE_OPTIONS library/src/p3wbWhiteBalancer.cpp -o library/obj/p3wbWhiteBalancer.o
+
+
+# link -------------------------------------------------------------------------
+echo
+echo "--- link ---"
+
+$LINKER $LINK_OPTIONS library/obj/*.o
+
+
+##mv libp3whitebalancer.so.1.0 /usr/lib
+ln -sf libp3whitebalancer.so.1.2 libp3whitebalancer.so.1
+##ldconfig -n .
+ln -sf libp3whitebalancer.so.1 libp3whitebalancer.so
+
+
+rm library/obj/*
+
+
+echo
+echo "--- done ---"
+
+
+exit

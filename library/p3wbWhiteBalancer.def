@@ -1,0 +1,8 @@
+EXPORTS
+p3wbIsVersionSupported
+p3wbGetName
+p3wbGetCopyright
+p3wbGetVersion
+p3wbWhiteBalance1
+p3wbWhiteBalance2
+p3wbTestUnits

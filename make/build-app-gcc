@@ -1,0 +1,51 @@
+#!/bin/bash
+
+
+# --- using: GCC 3.3.5 ---
+
+
+# set constants ----------------------------------------------------------------
+COMPILER=g++
+LINKER=g++
+COMPILE_OPTIONS="-c -x c++ -ansi -std=c++98 -pedantic -fno-gnu-keywords -fno-enforce-eh-specs -fno-rtti -O3 -ffast-math -mcpu=pentium4 -mfpmath=sse -msse -Wall -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wcast-align -Wwrite-strings -D _PLATFORM_LINUX -Iapplication/src -Iapplication/src/general -Iapplication/src/image"
+
+
+mkdir application/obj
+rm application/obj/*
+
+
+# compile ----------------------------------------------------------------------
+echo
+$COMPILER --version
+echo "--- compile ---"
+
+$COMPILER $COMPILE_OPTIONS -Wno-old-style-cast application/src/general/DynamicLibraryInterface.cpp -o application/obj/DynamicLibraryInterface.o
+
+$COMPILER $COMPILE_OPTIONS application/src/image/exr.cpp -o application/obj/exr.o
+$COMPILER $COMPILE_OPTIONS application/src/image/png.cpp -o application/obj/png.o
+$COMPILER $COMPILE_OPTIONS application/src/image/ppm.cpp -o application/obj/ppm.o
+$COMPILER $COMPILE_OPTIONS application/src/image/rgbe.cpp -o application/obj/rgbe.o
+$COMPILER $COMPILE_OPTIONS application/src/image/ImageAdopter.cpp -o application/obj/ImageAdopter.o
+$COMPILER $COMPILE_OPTIONS application/src/image/ImageFormatter.cpp -o application/obj/ImageFormatter.o
+$COMPILER $COMPILE_OPTIONS application/src/image/ImageQuantizing.cpp -o application/obj/ImageQuantizing.o
+$COMPILER $COMPILE_OPTIONS application/src/image/PixelsPtr.cpp -o application/obj/PixelsPtr.o
+$COMPILER $COMPILE_OPTIONS application/src/image/StreamExceptionSet.cpp -o application/obj/StreamExceptionSet.o
+
+$COMPILER $COMPILE_OPTIONS application/src/p3whitebalancer.cpp -o application/obj/p3whitebalancer.o
+
+
+# link -------------------------------------------------------------------------
+echo
+echo "--- link ---"
+
+$LINKER -Wl,-rpath,. -o p3whitebalancer application/obj/*.o -L. -lp3whitebalancer -ldl
+
+
+rm application/obj/*
+
+
+echo
+echo "--- done ---"
+
+
+exit
